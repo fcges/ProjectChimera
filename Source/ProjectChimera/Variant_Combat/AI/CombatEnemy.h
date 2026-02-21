@@ -36,6 +36,7 @@ class ACombatEnemy : public ACharacter, public ICombatAttacker, public ICombatDa
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* LifeBar;
 
+
 public:
 	
 	/** Constructor */
