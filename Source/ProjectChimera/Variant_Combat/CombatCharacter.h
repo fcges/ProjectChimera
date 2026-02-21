@@ -7,6 +7,9 @@
 #include "CombatAttacker.h"
 #include "CombatDamageable.h"
 #include "Animation/AnimInstance.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "RPGAttributeSet.h"
 #include "CombatCharacter.generated.h"
 
 class USpringArmComponent;
@@ -27,7 +30,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCombatCharacter, Log, All);
  *  - Respawning
  */
 UCLASS(abstract)
-class ACombatCharacter : public ACharacter, public ICombatAttacker, public ICombatDamageable
+class ACombatCharacter : public ACharacter, public ICombatAttacker, public ICombatDamageable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -44,6 +47,14 @@ class ACombatCharacter : public ACharacter, public ICombatAttacker, public IComb
 	UWidgetComponent* LifeBar;
 	
 protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities", meta = (AllowPrivateAccess = "true"))
+	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes", Replicated, meta = (AllowPrivateAccess = "true"))
+	URPGAttributeSet* AttributeSet;
+
+	void InitializeAttributes();
 
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category ="Input")
@@ -70,12 +81,12 @@ protected:
 	UInputAction* ChargedAttackAction;
 
 	/** Max amount of HP the character will have on respawn */
-	UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
-	float MaxHP = 5.0f;
+	//UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
+	//float MaxHP = 5.0f;
 
 	/** Current amount of HP the character has */
-	UPROPERTY(VisibleAnywhere, Category="Damage")
-	float CurrentHP = 0.0f;
+	//UPROPERTY(VisibleAnywhere, Category="Damage")
+	//float CurrentHP = 0.0f;
 
 	/** Life bar widget fill color */
 	UPROPERTY(EditAnywhere, Category="Damage")
@@ -177,6 +188,20 @@ public:
 	
 	/** Constructor */
 	ACombatCharacter();
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Health")
+	void OnHealthChanged(float DeltaValue, const FGameplayTagContainer& EventTags);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void UpdateLifebar();
+
+	UFUNCTION(BlueprintCallable, Category = "Level")
+	void SetLevel(float level);
+
+	UFUNCTION(BlueprintCallable, Category = "Level")
+	void SetExp(float exp);
 
 protected:
 
@@ -306,4 +331,9 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+	void HandleHealthChanged(const FOnAttributeChangeData& Data);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
