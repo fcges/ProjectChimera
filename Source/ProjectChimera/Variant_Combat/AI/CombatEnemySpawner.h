@@ -43,7 +43,7 @@ protected:
 	float InitialSpawnDelay = 5.0f;
 
 	/** Number of enemies to spawn */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy Spawner", meta = (ClampMin = 0, ClampMax = 100))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy Spawner", meta = (ClampMin = 0, ClampMax = 100))
 	int32 SpawnCount = 1;
 
 	/** Time to wait before spawning the next enemy after the current one dies */
