@@ -23,10 +23,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// Registers for enemy spawners to decrease enemy to spawn counters.
-	void OnEnemySpawned();
-	void OnEliteEnemySpawned();
-
 	UAbilitySystemComponent* AbilitySystemComponent;
 
 	/** List of actors to activate after the last enemy dies */
@@ -49,5 +45,11 @@ public:
 
 	// Called when player level up.
 	void OnPlayerLevelUp(const FOnAttributeChangeData& Data);
+
+	// Registers for enemy spawners to decrease enemy to spawn counters.
+	void OnEnemySpawned();
+	void OnEliteEnemySpawned();
+
+	bool GetMoreEnemyToSpawn(TArray<FName> EnemyTags);
 
 };

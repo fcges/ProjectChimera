@@ -7,7 +7,9 @@
 #include "AbilitySystemGlobals.h"
 #include "RPGAttributeSet.h"
 #include "AttributeSet.h"
+#include "CombatEnemy.h"
 #include "GameFramework/Character.h"
+#include <CombatEnemySpawner.h>
 //#include <mutex>
 
 // Sets default values
@@ -37,6 +39,17 @@ void ACombatEnemyManager::BeginPlay()
 			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(URPGAttributeSet::GetCurrentLevelAttribute()).AddUObject(this, &ACombatEnemyManager::OnPlayerLevelUp);
 		}
 	}
+
+	for (int i = 0; i < EnemySpawner.Num(); i++)
+	{
+		ACombatEnemySpawner* Spawner = Cast<ACombatEnemySpawner>(EnemySpawner[i]);
+		Spawner->RegisterCallback(this);
+	}
+	for (int i = 0; i < EliteEnemySpawner.Num(); i++)
+	{
+		ACombatEnemySpawner* EliteSpawner = Cast<ACombatEnemySpawner>(EnemySpawner[i]);
+		EliteSpawner->RegisterCallback(this);
+	}
 		
 }
 
@@ -60,8 +73,38 @@ void ACombatEnemyManager::OnEliteEnemySpawned()
 	EliteEnemyToSpawnCount--;
 }
 
+bool ACombatEnemyManager::GetMoreEnemyToSpawn(TArray<FName> EnemyTags)
+{
+	if (EnemyTags.Contains("Enemy"))
+	{
+		if (EnemyToSpawnCount > 0) {
+			return true;
+		}
+		else if (IsValid(AbilitySystemComponent))
+		{
+			bool bFound = false;
+			int32 Level = AbilitySystemComponent->GetGameplayAttributeValue(URPGAttributeSet::GetCurrentLevelAttribute(), bFound);
+			if (bFound)
+			{
+				EnemyToSpawnCount += Level * 3;
+			}
+			UE_LOG(LogTemp, Display, TEXT("Enemy replenished. New amount %d"), EnemyToSpawnCount);
+			return bFound;
+		}
+	}
+	if (EnemyTags.Contains("EliteEnemy") && EliteEnemyToSpawnCount > 0) {
+		return true;
+	}
+	return false;
+}
+
 void ACombatEnemyManager::OnPlayerLevelUp(const FOnAttributeChangeData& Data)
 {
 	UE_LOG(LogTemp, Display, TEXT("Player level up. New level data %d"), (int32)Data.NewValue);
+	EnemyToSpawnCount += 3 * Data.NewValue;
+	if ((int32)Data.NewValue % 3 == 0)
+	{
+		EliteEnemyToSpawnCount += Data.NewValue / 3;
+	}
 }
 
