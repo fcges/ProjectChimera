@@ -11,6 +11,8 @@
 #include "TimerManager.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
+#include <RPGAttributeSet.h>
+#include <AbilitySystemInterface.h>
 
 ACombatEnemy::ACombatEnemy()
 {
@@ -267,6 +269,29 @@ float ACombatEnemy::TakeDamage(float Damage, struct FDamageEvent const& DamageEv
 	{
 		// die
 		HandleDeath();
+
+		// increase player's EXP if DamageCauser is the player.
+		if (DamageCauser->ActorHasTag("Player"))
+		{
+			IAbilitySystemInterface* GasInterfacePtr = Cast<IAbilitySystemInterface>(DamageCauser);
+			if (GasInterfacePtr)
+			{
+				UAbilitySystemComponent* AbilitySystemComponent = GasInterfacePtr->GetAbilitySystemComponent();
+				if (IsValid(AbilitySystemComponent))
+				{
+					FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+					FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Reward, 1, EffectContext);
+
+					if (SpecHandle.IsValid())
+					{
+						AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+						int32 NewExp = AbilitySystemComponent->GetNumericAttribute(URPGAttributeSet::GetCurrentExpAttribute());
+						int32 MaxExp = AbilitySystemComponent->GetNumericAttribute(URPGAttributeSet::GetMaxExpAttribute());
+						UE_LOG(LogTemp, Log, TEXT("EXP: %d / %d"), NewExp, MaxExp);
+					}
+				}
+			}
+		}
 	}
 	else
 	{

@@ -7,6 +7,7 @@
 #include "CombatAttacker.h"
 #include "CombatDamageable.h"
 #include "Animation/AnimMontage.h"
+#include <RewardGameplayEffect.h>
 #include "Engine/TimerHandle.h"
 #include "CombatEnemy.generated.h"
 
@@ -55,6 +56,8 @@ public:
 	float CurrentHP = 0.0f;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EXP")
+	TSubclassOf<URewardGameplayEffect> Reward;
 
 	/** Name of the pelvis bone, for damage ragdoll physics */
 	UPROPERTY(EditAnywhere, Category="Damage")
