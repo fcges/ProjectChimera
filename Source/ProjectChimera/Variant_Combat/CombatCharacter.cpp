@@ -488,6 +488,7 @@ void ACombatCharacter::BeginPlay()
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentLevelAttribute()).AddUObject(this, &ACombatCharacter::HandleLevelChanged);
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentExpAttribute()).AddUObject(this, &ACombatCharacter::HandleExpChanged);
 	}
 
@@ -497,6 +498,19 @@ void ACombatCharacter::BeginPlay()
 		AbilitySystemComponent->GiveAbility(
 			FGameplayAbilitySpec(DashAbility, 1, 0)
 		);
+	}
+
+	// Apply Initial hp
+	if (AbilitySystemComponent && StatEffect)
+	{
+		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+		FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(
+			StatEffect, AttributeSet->GetCurrentLevel(), Context
+		);
+		if (Spec.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+		}
 	}
 
 	// Player HUD
@@ -569,6 +583,17 @@ void ACombatCharacter::HandleLevelChanged(const FOnAttributeChangeData& Data)
 	if (PlayerHUDWidget)
 	{
 		PlayerHUDWidget->UpdateLevel((int32)Data.NewValue);
+	}
+	if (AbilitySystemComponent && StatEffect)
+	{
+		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+		FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(
+			StatEffect, AttributeSet->GetCurrentLevel(), Context
+		);
+		if (Spec.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+		}
 	}
 }
 
