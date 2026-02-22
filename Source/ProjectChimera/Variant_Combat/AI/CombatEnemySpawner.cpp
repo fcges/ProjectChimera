@@ -25,18 +25,20 @@ ACombatEnemySpawner::ACombatEnemySpawner()
 
 	SpawnDirection = CreateDefaultSubobject<UArrowComponent>(TEXT("Spawn Direction"));
 	SpawnDirection->SetupAttachment(RootComponent);
+	
 }
 
 void ACombatEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
+	DefaultEnemy = EnemyClass->GetDefaultObject<AActor>();
 	
 	// should we spawn an enemy right away?
-	if (bShouldSpawnEnemiesImmediately)
+	/*if (bShouldSpawnEnemiesImmediately)
 	{
 		// schedule the first enemy spawn
 		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, InitialSpawnDelay);
-	}
+	}*/
 
 }
 
@@ -56,8 +58,9 @@ void ACombatEnemySpawner::RegisterCallback(ACombatEnemyManager* const InManager)
 void ACombatEnemySpawner::SpawnEnemy()
 {
 	// ensure the enemy class is valid
-	if (IsValid(EnemyClass))
+	if (IsValid(EnemyClass) && SpawnCount > 0)
 	{
+		--SpawnCount;
 		// spawn the enemy at the reference capsule's transform
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -85,50 +88,69 @@ void ACombatEnemySpawner::SpawnEnemy()
 				}
 			}
 		}
+		
+		// Add next event to spawn enemy.
+		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
 	}
+	
 }
 
 void ACombatEnemySpawner::OnEnemyDied()
 {
-	// decrease the spawn counter
-	--SpawnCount;
-
-	// is this the last enemy we should spawn?
-	if (SpawnCount <= 0)
+	// // decrease the spawn counter
+	// --SpawnCount;
+	//
+	// // is this the last enemy we should spawn?
+	// if (SpawnCount <= 0)
+	// {
+	// 	// schedule the activation on depleted message
+	// 	GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnerDepleted, ActivationDelay);
+	// 	return;
+	// }
+	//
+	// // schedule the next enemy spawn
+	// if (SpawnCount > 0)
+	// {
+	// 	GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
+	// }
+	
+	if (ManagerCallbackHandle)
 	{
-		// schedule the activation on depleted message
-		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnerDepleted, ActivationDelay);
-		return;
-	}
-
-	// schedule the next enemy spawn
-	if (SpawnCount > 0)
-	{
-		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
-	}
-}
-
-void ACombatEnemySpawner::SpawnerDepleted()
-{
-	// process the actors to activate list
-	for (AActor* CurrentActor : ActorsToActivateWhenDepleted)
-	{
-		// check if the actor is activatable
-		if (ICombatActivatable* CombatActivatable = Cast<ICombatActivatable>(CurrentActor))
+		if (DefaultEnemy->ActorHasTag(EnemyTag))
 		{
-			// activate the actor
-			CombatActivatable->ActivateInteraction(this);
+			ManagerCallbackHandle->OnEnemyKilled();
+		}
+		else if (DefaultEnemy->ActorHasTag(EliteEnemyTag))
+		{
+			ManagerCallbackHandle->OnEliteEnemyKilled();
 		}
 	}
-
-	// Ask for more enemies to spawn if possible
-	if (IsValid(EnemyClass) && ManagerCallbackHandle->GetMoreEnemyToSpawn(EnemyClass->GetDefaultObject<ACombatEnemy>()->Tags))
-	{
-		SpawnCount++;
-		UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner get more enemy to spawn from CombatEnemyManager, new count at %d"), (int32)SpawnCount);
-		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
-	}
+	
 }
+
+// void ACombatEnemySpawner::SpawnerDepleted()
+// {
+// 	// process the actors to activate list
+// 	for (AActor* CurrentActor : ActorsToActivateWhenDepleted)
+// 	{
+// 		// check if the actor is activatable
+// 		if (ICombatActivatable* CombatActivatable = Cast<ICombatActivatable>(CurrentActor))
+// 		{
+// 			// activate the actor
+// 			CombatActivatable->ActivateInteraction(this);
+// 		}
+// 	}
+// 	
+// 	// Ask for more enemies to spawn if possible
+// 	GetEnemyToSpawn();
+// 	/*const AActor* Enemy = EnemyClass->GetDefaultObject<AActor>();
+// 	if (IsValid(EnemyClass) && IsValid(ManagerCallbackHandle))
+// 	{
+// 		SpawnCount += ManagerCallbackHandle->GetMoreEnemyToSpawn(Enemy);
+// 		UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner get more enemy to spawn from CombatEnemyManager, new count at %d"), (int32)SpawnCount);
+// 		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
+// 	}*/
+// }
 
 void ACombatEnemySpawner::ToggleInteraction(AActor* ActivationInstigator)
 {
@@ -153,4 +175,20 @@ void ACombatEnemySpawner::ActivateInteraction(AActor* ActivationInstigator)
 void ACombatEnemySpawner::DeactivateInteraction(AActor* ActivationInstigator)
 {
 	// stub
+}
+
+// void ACombatEnemySpawner::GetEnemyToSpawn()
+// {
+// 	if (IsValid(EnemyClass) && IsValid(ManagerCallbackHandle))
+// 	{
+// 		SpawnCount += ManagerCallbackHandle->GetMoreEnemyToSpawn(DefaultEnemy);
+// 		UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner get more enemy to spawn from CombatEnemyManager, new count at %d"), (int32)SpawnCount);
+// 		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
+// 	}
+// }
+
+void ACombatEnemySpawner::ReceiveEnemyFromManager(const int32 InCount)
+{
+	SpawnCount += InCount;
+	GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
 }
