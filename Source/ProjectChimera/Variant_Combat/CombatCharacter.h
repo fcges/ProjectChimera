@@ -169,7 +169,7 @@ protected:
 
 	/** Camera boom length when the character respawns */
 	UPROPERTY(EditAnywhere, Category="Camera", meta = (ClampMin = 0, ClampMax = 1000, Units = "cm"))
-	float DefaultCameraDistance = 100.0f;
+	float DefaultCameraDistance = 200.0f;
 
 	/** Time to wait before respawning the character */
 	UPROPERTY(EditAnywhere, Category="Respawn", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
@@ -299,6 +299,10 @@ public:
 
 	/** Overrides landing to reset damage ragdoll physics */
 	virtual void Landed(const FHitResult& Hit) override;
+
+	/** Abilities **/
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> DashAbility;
 
 protected:
 

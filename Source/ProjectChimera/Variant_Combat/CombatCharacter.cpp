@@ -434,7 +434,7 @@ float ACombatCharacter::TakeDamage(float Damage, struct FDamageEvent const& Dama
 	}
 	else
 	{
-		UpdateLifebar();
+		//UpdateLifebar();
 
 		// enable partial ragdoll physics, but keep the pelvis vertical
 		GetMesh()->SetPhysicsBlendWeight(0.5f);
@@ -481,9 +481,19 @@ void ACombatCharacter::BeginPlay()
 
 	InitializeAttributes();
 
+	// Add currentHealth and maxHealth to HandleHealthChanged
 	if (AbilitySystemComponent && AttributeSet)
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+	}
+
+	// Give Dash Ability
+	if (AbilitySystemComponent && DashAbility)
+	{
+		AbilitySystemComponent->GiveAbility(
+			FGameplayAbilitySpec(DashAbility, 1, 0)
+		);
 	}
 }
 
