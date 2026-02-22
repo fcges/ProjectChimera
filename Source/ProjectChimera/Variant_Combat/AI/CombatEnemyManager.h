@@ -50,6 +50,6 @@ public:
 	void OnEnemySpawned();
 	void OnEliteEnemySpawned();
 
-	bool GetMoreEnemyToSpawn(TArray<FName> EnemyTags);
+	bool GetMoreEnemyToSpawn(const AActor* InEnemy);
 
 };

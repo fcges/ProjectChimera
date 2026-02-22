@@ -120,9 +120,9 @@ void ACombatEnemySpawner::SpawnerDepleted()
 			CombatActivatable->ActivateInteraction(this);
 		}
 	}
-
+	const AActor* Enemy = EnemyClass->GetDefaultObject<AActor>();
 	// Ask for more enemies to spawn if possible
-	if (IsValid(EnemyClass) && ManagerCallbackHandle->GetMoreEnemyToSpawn(EnemyClass->GetDefaultObject<ACombatEnemy>()->Tags))
+	if (IsValid(EnemyClass) && ManagerCallbackHandle->GetMoreEnemyToSpawn(Enemy))
 	{
 		SpawnCount++;
 		UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner get more enemy to spawn from CombatEnemyManager, new count at %d"), (int32)SpawnCount);

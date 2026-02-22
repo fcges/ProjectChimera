@@ -13,9 +13,8 @@ URewardGameplayEffect::URewardGameplayEffect()
 	ExpMod.Attribute = URPGAttributeSet::GetCurrentExpAttribute();
 	ExpMod.ModifierOp = EGameplayModOp::Additive;
 
-	FScalableFloat ExpAmount;
 	// EXP value to reward player, set in the blueprint.
-	ExpAmount.SetValue(Exp);
+	FScalableFloat ExpAmount;
 	ExpMod.ModifierMagnitude = FGameplayEffectModifierMagnitude(ExpAmount);
 
 	Modifiers.Add(ExpMod);

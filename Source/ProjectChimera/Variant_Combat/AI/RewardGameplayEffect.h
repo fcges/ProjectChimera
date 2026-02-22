@@ -15,8 +15,8 @@ class PROJECTCHIMERA_API URewardGameplayEffect : public UGameplayEffect
 	GENERATED_BODY()
 	
 protected:
-	UPROPERTY(EditAnywhere, Category = "EXP")
-	int32 Exp = 10;
+	//UPROPERTY(EditAnywhere, Category = "EXP")
+	//int32 Exp = 10;
 
 public:
 	URewardGameplayEffect();

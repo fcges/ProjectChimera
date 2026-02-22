@@ -37,7 +37,7 @@ protected:
 
 	/** If true, the first enemy will be spawned as soon as the game starts */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy Spawner")
-	bool bShouldSpawnEnemiesImmediately = true;
+	bool bShouldSpawnEnemiesImmediately = false;
 
 	/** Time to wait before spawning the first enemy on game start */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy Spawner", meta = (ClampMin = 0, ClampMax = 10))

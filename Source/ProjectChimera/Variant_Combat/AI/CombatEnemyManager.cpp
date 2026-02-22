@@ -73,9 +73,16 @@ void ACombatEnemyManager::OnEliteEnemySpawned()
 	EliteEnemyToSpawnCount--;
 }
 
-bool ACombatEnemyManager::GetMoreEnemyToSpawn(TArray<FName> EnemyTags)
+bool ACombatEnemyManager::GetMoreEnemyToSpawn(const AActor* InEnemy)
 {
-	if (EnemyTags.Contains("Enemy"))
+	if (!IsValid(InEnemy))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Enemy is invalid "));
+		return false;
+	}
+	TArray<FName> EnemyTags = InEnemy->Tags;
+	UE_LOG(LogTemp, Display, TEXT("First tag of the Enemy is %s"), *EnemyTags[0].ToString());
+	if (EnemyTags[0].IsEqual(TEXT("Enemy")))
 	{
 		if (EnemyToSpawnCount > 0) {
 			return true;
@@ -92,7 +99,8 @@ bool ACombatEnemyManager::GetMoreEnemyToSpawn(TArray<FName> EnemyTags)
 			return bFound;
 		}
 	}
-	if (EnemyTags.Contains("EliteEnemy") && EliteEnemyToSpawnCount > 0) {
+	if (EnemyTags[0].IsEqual(TEXT("EliteEnemy")))// && EliteEnemyToSpawnCount > 0) 
+	{
 		return true;
 	}
 	return false;
