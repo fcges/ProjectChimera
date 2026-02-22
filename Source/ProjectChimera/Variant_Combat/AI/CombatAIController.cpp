@@ -23,9 +23,9 @@ ACombatAIController::ACombatAIController()
 	//Create the config object for AISensePerceptionComponent
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>("SenseConfig_Sight");
 
-	SightConfig->SightRadius = 1500;
-	SightConfig->LoseSightRadius = 2000;
-	SightConfig->PeripheralVisionAngleDegrees = 45;
+	SightConfig->SightRadius = 10000;
+	SightConfig->LoseSightRadius = 10500;
+	SightConfig->PeripheralVisionAngleDegrees = 60;
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	//SightConfig->DetectionByAffiliation.bDetectFriendlies = true;

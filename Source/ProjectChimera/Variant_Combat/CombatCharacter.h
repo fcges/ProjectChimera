@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
+#include "PlayerHUDWidget.h"
 #include "RPGAttributeSet.h"
 #include "CombatCharacter.generated.h"
 
@@ -79,6 +80,9 @@ protected:
 	/** Charged Attack Input Action */
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* ChargedAttackAction;
+
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* PauseAction;
 
 	/** Max amount of HP the character will have on respawn */
 	//UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
@@ -246,6 +250,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoChargedAttackEnd();
 
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void TogglePauseMenu();
+
 protected:
 
 	/** Resets the character's current HP to maximum */
@@ -291,6 +298,9 @@ public:
 
 	/** Called from the respawn timer to destroy and re-create the character */
 	void RespawnCharacter();
+	
+	void ShowPauseMenu();
+	void HidePauseMenu();
 
 public:
 
@@ -337,7 +347,25 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 private:
+	
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
+	void HandleExpChanged(const FOnAttributeChangeData& Data);
+	void HandleLevelChanged(const FOnAttributeChangeData& Data);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// set in editor: WBP_PauseMenu
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUserWidget> PauseMenuClass;
+	
+	UPROPERTY()
+	TObjectPtr<UUserWidget> PauseMenuWidget;
+
+	bool bIsPaused = false;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUserWidget> PlayerHUDClass;
+
+	UPROPERTY()
+	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 };

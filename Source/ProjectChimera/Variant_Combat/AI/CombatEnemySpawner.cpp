@@ -48,6 +48,11 @@ void ACombatEnemySpawner::EndPlay(EEndPlayReason::Type EndPlayReason)
 	GetWorld()->GetTimerManager().ClearTimer(SpawnTimer);
 }
 
+void ACombatEnemySpawner::RegisterCallback(ACombatEnemyManager* const InManager)
+{
+	ManagerCallbackHandle = InManager;
+}
+
 void ACombatEnemySpawner::SpawnEnemy()
 {
 	// ensure the enemy class is valid
@@ -64,6 +69,21 @@ void ACombatEnemySpawner::SpawnEnemy()
 		{
 			// subscribe to the death delegate
 			SpawnedEnemy->OnEnemyDied.AddDynamic(this, &ACombatEnemySpawner::OnEnemyDied);
+			if (ManagerCallbackHandle)
+			{
+				if (SpawnedEnemy->ActorHasTag("Enemy"))
+				{
+					ManagerCallbackHandle->OnEnemySpawned();
+				}
+				else if (SpawnedEnemy->ActorHasTag("EliteEnemy"))
+				{
+					ManagerCallbackHandle->OnEliteEnemySpawned();
+				}
+				else
+				{
+					UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner has spawned an enemy that has no tag."));
+				}
+			}
 		}
 	}
 }
@@ -82,7 +102,10 @@ void ACombatEnemySpawner::OnEnemyDied()
 	}
 
 	// schedule the next enemy spawn
-	GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
+	if (SpawnCount > 0)
+	{
+		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
+	}
 }
 
 void ACombatEnemySpawner::SpawnerDepleted()
@@ -96,6 +119,14 @@ void ACombatEnemySpawner::SpawnerDepleted()
 			// activate the actor
 			CombatActivatable->ActivateInteraction(this);
 		}
+	}
+
+	// Ask for more enemies to spawn if possible
+	if (IsValid(EnemyClass) && ManagerCallbackHandle->GetMoreEnemyToSpawn(EnemyClass->GetDefaultObject<ACombatEnemy>()->Tags))
+	{
+		SpawnCount++;
+		UE_LOG(LogTemp, Display, TEXT("CombatEnemySpawner get more enemy to spawn from CombatEnemyManager, new count at %d"), (int32)SpawnCount);
+		GetWorld()->GetTimerManager().SetTimer(SpawnTimer, this, &ACombatEnemySpawner::SpawnEnemy, RespawnDelay);
 	}
 }
 

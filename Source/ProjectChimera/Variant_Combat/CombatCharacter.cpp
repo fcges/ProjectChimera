@@ -17,7 +17,9 @@
 #include "CombatPlayerController.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
+#include "PauseMenuWidget.h"
 #include "RPGAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 ACombatCharacter::ACombatCharacter()
@@ -486,6 +488,7 @@ void ACombatCharacter::BeginPlay()
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentExpAttribute()).AddUObject(this, &ACombatCharacter::HandleExpChanged);
 	}
 
 	// Give Dash Ability
@@ -494,6 +497,40 @@ void ACombatCharacter::BeginPlay()
 		AbilitySystemComponent->GiveAbility(
 			FGameplayAbilitySpec(DashAbility, 1, 0)
 		);
+	}
+
+	// Player HUD
+	if (PlayerHUDClass)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PlayerHUDWidget = CreateWidget<UPlayerHUDWidget>(PC, PlayerHUDClass);
+			if (PlayerHUDWidget)
+			{
+				PlayerHUDWidget->AddToViewport(0); // low Z-order, behind pause menu
+				PlayerHUDWidget->UpdateHealthBar(AttributeSet->GetCurrentHealth(), AttributeSet->GetMaxHealth());
+				PlayerHUDWidget->UpdateExp(AttributeSet->GetCurrentExp(), AttributeSet->GetMaxExp());
+				PlayerHUDWidget->UpdateLevel((int32)AttributeSet->GetCurrentLevel());
+			}
+		}
+	}
+
+	// Optional: pre-create it once
+	if (PauseMenuClass)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PauseMenuWidget = CreateWidget<UUserWidget>(PC, PauseMenuClass);
+		}
+	}
+
+	if (PauseMenuWidget)
+	{
+		UPauseMenuWidget* TypedWidget = Cast<UPauseMenuWidget>(PauseMenuWidget);
+		if (TypedWidget)
+		{
+			TypedWidget->OnResumeRequested.BindUObject(this, &ACombatCharacter::HidePauseMenu);
+		}
 	}
 }
 
@@ -507,12 +544,32 @@ void ACombatCharacter::InitializeAttributes()
 
 void ACombatCharacter::HandleHealthChanged(const FOnAttributeChangeData& Data)
 {
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateHealthBar(Data.NewValue, AttributeSet->GetMaxHealth());
+	}
 	float NewHealth = Data.NewValue;
 	float OldHealth = Data.OldValue;
 
 	float DeltaValue = NewHealth - OldHealth;
 
 	OnHealthChanged(DeltaValue, FGameplayTagContainer());
+}
+
+void ACombatCharacter::HandleExpChanged(const FOnAttributeChangeData& Data)
+{
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateExp(Data.NewValue, AttributeSet->GetMaxExp());
+	}
+}
+
+void ACombatCharacter::HandleLevelChanged(const FOnAttributeChangeData& Data)
+{
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateLevel((int32)Data.NewValue);
+	}
 }
 
 void ACombatCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -551,6 +608,9 @@ void ACombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Charged Attack
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Started, this, &ACombatCharacter::ChargedAttackPressed);
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Completed, this, &ACombatCharacter::ChargedAttackReleased);
+		
+		// Pause Menu
+		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Started, this, &ACombatCharacter::TogglePauseMenu);
 	}
 }
 
@@ -565,3 +625,85 @@ void ACombatCharacter::NotifyControllerChanged()
 	}
 }
 
+void ACombatCharacter::TogglePauseMenu()
+{
+	if (bIsPaused)
+	{
+		HidePauseMenu();
+	}
+	else
+	{
+		ShowPauseMenu();
+	}
+}
+
+void ACombatCharacter::ShowPauseMenu()
+{
+	if (bIsPaused)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (!PauseMenuWidget)
+	{
+		if (!PauseMenuClass)
+		{
+			return;
+		}
+		PauseMenuWidget = CreateWidget<UUserWidget>(PC, PauseMenuClass);
+		if (!PauseMenuWidget)
+		{
+			return;
+		}
+	}
+
+	PauseMenuWidget->AddToViewport(100); // high Z-order
+	bIsPaused = true;
+
+	// Pause game
+	PC->SetPause(true);
+
+	// Switch input to UI
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(PauseMenuWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PC->SetInputMode(FInputModeGameAndUI());
+
+	PC->bShowMouseCursor = true;
+	PC->bEnableClickEvents = true;
+	PC->bEnableMouseOverEvents = true;
+}
+
+void ACombatCharacter::HidePauseMenu()
+{
+	if (!bIsPaused) return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (PauseMenuWidget)
+	{
+		PauseMenuWidget->RemoveFromParent();
+	}
+
+	bIsPaused= false;
+
+	// Unpause
+	PC->SetPause(false);
+
+	// Restore game input
+	PC->SetInputMode(FInputModeGameOnly());
+
+	PC->bShowMouseCursor = false;
+	PC->bEnableClickEvents = false;
+	PC->bEnableMouseOverEvents = false;
+}
