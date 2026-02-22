@@ -310,6 +310,10 @@ public:
 	/** Overrides landing to reset damage ragdoll physics */
 	virtual void Landed(const FHitResult& Hit) override;
 
+	/** Gameplay Effect **/
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TSubclassOf<UGameplayEffect> StatEffect;
+
 	/** Abilities **/
 	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
 	TSubclassOf<UGameplayAbility> DashAbility;
@@ -347,7 +351,7 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 private:
-	
+
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
 	void HandleExpChanged(const FOnAttributeChangeData& Data);
 	void HandleLevelChanged(const FOnAttributeChangeData& Data);
@@ -357,13 +361,13 @@ private:
 	// set in editor: WBP_PauseMenu
 	UPROPERTY(EditAnywhere, Category="UI")
 	TSubclassOf<UUserWidget> PauseMenuClass;
-	
+
 	UPROPERTY()
 	TObjectPtr<UUserWidget> PauseMenuWidget;
 
 	bool bIsPaused = false;
 
-	UPROPERTY(EditAnywhere, Category="UI")
+	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUserWidget> PlayerHUDClass;
 
 	UPROPERTY()
