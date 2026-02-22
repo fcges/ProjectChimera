@@ -7,6 +7,9 @@
 #include "CombatAttacker.h"
 #include "CombatDamageable.h"
 #include "Animation/AnimInstance.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "RPGAttributeSet.h"
 #include "CombatCharacter.generated.h"
 
 class USpringArmComponent;
@@ -27,7 +30,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCombatCharacter, Log, All);
  *  - Respawning
  */
 UCLASS(abstract)
-class ACombatCharacter : public ACharacter, public ICombatAttacker, public ICombatDamageable
+class ACombatCharacter : public ACharacter, public ICombatAttacker, public ICombatDamageable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -44,6 +47,14 @@ class ACombatCharacter : public ACharacter, public ICombatAttacker, public IComb
 	UWidgetComponent* LifeBar;
 	
 protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities", meta = (AllowPrivateAccess = "true"))
+	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes", Replicated, meta = (AllowPrivateAccess = "true"))
+	URPGAttributeSet* AttributeSet;
+
+	void InitializeAttributes();
 
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category ="Input")
@@ -69,13 +80,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* ChargedAttackAction;
 
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* PauseAction;
+
 	/** Max amount of HP the character will have on respawn */
-	UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
-	float MaxHP = 5.0f;
+	//UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
+	//float MaxHP = 5.0f;
 
 	/** Current amount of HP the character has */
-	UPROPERTY(VisibleAnywhere, Category="Damage")
-	float CurrentHP = 0.0f;
+	//UPROPERTY(VisibleAnywhere, Category="Damage")
+	//float CurrentHP = 0.0f;
 
 	/** Life bar widget fill color */
 	UPROPERTY(EditAnywhere, Category="Damage")
@@ -158,7 +172,7 @@ protected:
 
 	/** Camera boom length when the character respawns */
 	UPROPERTY(EditAnywhere, Category="Camera", meta = (ClampMin = 0, ClampMax = 1000, Units = "cm"))
-	float DefaultCameraDistance = 100.0f;
+	float DefaultCameraDistance = 200.0f;
 
 	/** Time to wait before respawning the character */
 	UPROPERTY(EditAnywhere, Category="Respawn", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
@@ -177,6 +191,20 @@ public:
 	
 	/** Constructor */
 	ACombatCharacter();
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Health")
+	void OnHealthChanged(float DeltaValue, const FGameplayTagContainer& EventTags);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void UpdateLifebar();
+
+	UFUNCTION(BlueprintCallable, Category = "Level")
+	void SetLevel(float level);
+
+	UFUNCTION(BlueprintCallable, Category = "Level")
+	void SetExp(float exp);
 
 protected:
 
@@ -220,6 +248,9 @@ public:
 	/** Handles charged attack released from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoChargedAttackEnd();
+
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void TogglePauseMenu();
 
 protected:
 
@@ -266,6 +297,9 @@ public:
 
 	/** Called from the respawn timer to destroy and re-create the character */
 	void RespawnCharacter();
+	
+	void ShowPauseMenu();
+	void HidePauseMenu();
 
 public:
 
@@ -274,6 +308,10 @@ public:
 
 	/** Overrides landing to reset damage ragdoll physics */
 	virtual void Landed(const FHitResult& Hit) override;
+
+	/** Abilities **/
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> DashAbility;
 
 protected:
 
@@ -306,4 +344,16 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+	void HandleHealthChanged(const FOnAttributeChangeData& Data);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// set in editor: WBP_PauseMenu
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUserWidget> PauseMenuClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> PauseMenuWidget;
+	bool bIsPaused = false;
 };

@@ -15,6 +15,12 @@
 #include "TimerManager.h"
 #include "Engine/LocalPlayer.h"
 #include "CombatPlayerController.h"
+#include "GameplayEffect.h"
+#include "GameplayEffectExtension.h"
+#include "PauseMenuWidget.h"
+#include "RPGAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 ACombatCharacter::ACombatCharacter()
 {
@@ -49,6 +55,19 @@ ACombatCharacter::ACombatCharacter()
 
 	// set the player tag
 	Tags.Add(FName("Player"));
+
+	//Attributes
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+
+	AttributeSet = CreateDefaultSubobject<URPGAttributeSet>(TEXT("AttributeSet"));
+}
+
+UAbilitySystemComponent* ACombatCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 
 void ACombatCharacter::Move(const FInputActionValue& Value)
@@ -167,7 +186,8 @@ void ACombatCharacter::DoChargedAttackEnd()
 void ACombatCharacter::ResetHP()
 {
 	// reset the current HP total
-	CurrentHP = MaxHP;
+	//CurrentHP = MaxHP;
+	AttributeSet->SetCurrentHealth(AttributeSet->GetMaxHealth());
 
 	// update the life bar
 	LifeBarWidget->SetLifePercentage(1.0f);
@@ -349,6 +369,26 @@ void ACombatCharacter::ApplyDamage(float Damage, AActor* DamageCauser, const FVe
 
 }
 
+void ACombatCharacter::SetLevel(float level)
+{
+	AttributeSet->SetCurrentLevel(level);
+}
+
+void ACombatCharacter::SetExp(float exp)
+{
+	AttributeSet->SetCurrentExp(exp);
+}
+
+void ACombatCharacter::UpdateLifebar()
+{
+	float CurrentHP = AttributeSet->GetCurrentHealth();
+	float MaxHP = AttributeSet->GetMaxHealth();
+
+	// update the life bar
+	UE_LOG(LogTemp, Log, TEXT("HP: %f / %f"), CurrentHP, MaxHP);
+	LifeBarWidget->SetLifePercentage(CurrentHP / MaxHP);
+}
+
 void ACombatCharacter::HandleDeath()
 {
 	// disable movement while we're dead
@@ -380,14 +420,13 @@ void ACombatCharacter::RespawnCharacter()
 
 float ACombatCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	// only process damage if the character is still alive
-	if (CurrentHP <= 0.0f)
-	{
-		return 0.0f;
-	}
+	float CurrentHP = AttributeSet->GetCurrentHealth();
+	float MaxHP = AttributeSet->GetMaxHealth();
+	if (CurrentHP <= 0.0f) return 0.0f;
+	UE_LOG(LogTemp, Log, TEXT("Damage: %f"), Damage);
 
-	// reduce the current HP
 	CurrentHP -= Damage;
+	AttributeSet->SetCurrentHealth(CurrentHP);
 
 	// have we run out of HP?
 	if (CurrentHP <= 0.0f)
@@ -397,8 +436,7 @@ float ACombatCharacter::TakeDamage(float Damage, struct FDamageEvent const& Dama
 	}
 	else
 	{
-		// update the life bar
-		LifeBarWidget->SetLifePercentage(CurrentHP / MaxHP);
+		//UpdateLifebar();
 
 		// enable partial ragdoll physics, but keep the pelvis vertical
 		GetMesh()->SetPhysicsBlendWeight(0.5f);
@@ -412,6 +450,8 @@ float ACombatCharacter::TakeDamage(float Damage, struct FDamageEvent const& Dama
 void ACombatCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
+
+	float CurrentHP = AttributeSet->GetCurrentHealth();
 
 	// is the character still alive?
 	if (CurrentHP >= 0.0f)
@@ -440,6 +480,67 @@ void ACombatCharacter::BeginPlay()
 
 	// reset HP to maximum
 	ResetHP();
+
+	InitializeAttributes();
+
+	// Add currentHealth and maxHealth to HandleHealthChanged
+	if (AbilitySystemComponent && AttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+	}
+
+	// Give Dash Ability
+	if (AbilitySystemComponent && DashAbility)
+	{
+		AbilitySystemComponent->GiveAbility(
+			FGameplayAbilitySpec(DashAbility, 1, 0)
+		);
+	}
+
+	// Optional: pre-create it once
+	if (PauseMenuClass)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PauseMenuWidget = CreateWidget<UUserWidget>(PC, PauseMenuClass);
+		}
+	}
+
+	if (PauseMenuWidget)
+	{
+		UPauseMenuWidget* TypedWidget = Cast<UPauseMenuWidget>(PauseMenuWidget);
+		if (TypedWidget)
+		{
+			TypedWidget->OnResumeRequested.BindUObject(this, &ACombatCharacter::HidePauseMenu);
+		}
+	}
+}
+
+void ACombatCharacter::InitializeAttributes()
+{
+	if (AbilitySystemComponent && AttributeSet)
+	{
+
+	}
+}
+
+void ACombatCharacter::HandleHealthChanged(const FOnAttributeChangeData& Data)
+{
+	float NewHealth = Data.NewValue;
+	float OldHealth = Data.OldValue;
+
+	float DeltaValue = NewHealth - OldHealth;
+
+	OnHealthChanged(DeltaValue, FGameplayTagContainer());
+}
+
+void ACombatCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ACombatCharacter, AbilitySystemComponent);
+	DOREPLIFETIME(ACombatCharacter, AttributeSet);
 }
 
 void ACombatCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -470,6 +571,9 @@ void ACombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Charged Attack
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Started, this, &ACombatCharacter::ChargedAttackPressed);
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Completed, this, &ACombatCharacter::ChargedAttackReleased);
+		
+		// Pause Menu
+		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Started, this, &ACombatCharacter::TogglePauseMenu);
 	}
 }
 
@@ -484,3 +588,85 @@ void ACombatCharacter::NotifyControllerChanged()
 	}
 }
 
+void ACombatCharacter::TogglePauseMenu()
+{
+	if (bIsPaused)
+	{
+		HidePauseMenu();
+	}
+	else
+	{
+		ShowPauseMenu();
+	}
+}
+
+void ACombatCharacter::ShowPauseMenu()
+{
+	if (bIsPaused)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (!PauseMenuWidget)
+	{
+		if (!PauseMenuClass)
+		{
+			return;
+		}
+		PauseMenuWidget = CreateWidget<UUserWidget>(PC, PauseMenuClass);
+		if (!PauseMenuWidget)
+		{
+			return;
+		}
+	}
+
+	PauseMenuWidget->AddToViewport(100); // high Z-order
+	bIsPaused = true;
+
+	// Pause game
+	PC->SetPause(true);
+
+	// Switch input to UI
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(PauseMenuWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PC->SetInputMode(FInputModeGameAndUI());
+
+	PC->bShowMouseCursor = true;
+	PC->bEnableClickEvents = true;
+	PC->bEnableMouseOverEvents = true;
+}
+
+void ACombatCharacter::HidePauseMenu()
+{
+	if (!bIsPaused) return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (PauseMenuWidget)
+	{
+		PauseMenuWidget->RemoveFromParent();
+	}
+
+	bIsPaused= false;
+
+	// Unpause
+	PC->SetPause(false);
+
+	// Restore game input
+	PC->SetInputMode(FInputModeGameOnly());
+
+	PC->bShowMouseCursor = false;
+	PC->bEnableClickEvents = false;
+	PC->bEnableMouseOverEvents = false;
+}
