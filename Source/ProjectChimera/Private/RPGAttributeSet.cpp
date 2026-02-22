@@ -4,6 +4,7 @@
 #include "RPGAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
+#include "CombatCharacter.h"
 
 URPGAttributeSet::URPGAttributeSet()
 {
@@ -64,6 +65,7 @@ void URPGAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, f
 		while (NewValue >= MaxExpValue) {
 			NewValue -= MaxExpValue;
 			CurrentLevel.SetCurrentValue(CurrentLevel.GetCurrentValue() + 1);
+			ApplyStatEffect();
 		}
 	}
 }
@@ -84,8 +86,33 @@ void URPGAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMod
 		while (NewExp >= MaxExpValue) {
 			NewExp -= MaxExpValue;
 			CurrentLevel.SetCurrentValue(CurrentLevel.GetCurrentValue() + 1);
+			ApplyStatEffect();
 		}
 		SetCurrentExp(NewExp);
+	}
+}
+
+void URPGAttributeSet::ApplyStatEffect()
+{
+	IAbilitySystemInterface* GasInterface = Cast<IAbilitySystemInterface>(GetOwningActor());
+	if (GasInterface)
+	{
+		UAbilitySystemComponent* ASC = GasInterface->GetAbilitySystemComponent();
+		if (IsValid(ASC))
+		{
+			ACombatCharacter* OwnerCharacter = Cast<ACombatCharacter>(GetOwningActor());
+			if (OwnerCharacter && OwnerCharacter->StatEffect)
+			{
+				FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+				FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(
+					OwnerCharacter->StatEffect, CurrentLevel.GetCurrentValue(), Context
+				);
+				if (Spec.IsValid())
+				{
+					ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+				}
+			}
+		}
 	}
 }
 
