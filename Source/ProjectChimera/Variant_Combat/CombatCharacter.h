@@ -80,6 +80,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* ChargedAttackAction;
 
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* PauseAction;
+
 	/** Max amount of HP the character will have on respawn */
 	//UPROPERTY(EditAnywhere, Category="Damage", meta = (ClampMin = 0, ClampMax = 100))
 	//float MaxHP = 5.0f;
@@ -169,7 +172,7 @@ protected:
 
 	/** Camera boom length when the character respawns */
 	UPROPERTY(EditAnywhere, Category="Camera", meta = (ClampMin = 0, ClampMax = 1000, Units = "cm"))
-	float DefaultCameraDistance = 100.0f;
+	float DefaultCameraDistance = 200.0f;
 
 	/** Time to wait before respawning the character */
 	UPROPERTY(EditAnywhere, Category="Respawn", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
@@ -246,6 +249,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoChargedAttackEnd();
 
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void TogglePauseMenu();
+
 protected:
 
 	/** Resets the character's current HP to maximum */
@@ -291,6 +297,9 @@ public:
 
 	/** Called from the respawn timer to destroy and re-create the character */
 	void RespawnCharacter();
+	
+	void ShowPauseMenu();
+	void HidePauseMenu();
 
 public:
 
@@ -299,6 +308,10 @@ public:
 
 	/** Overrides landing to reset damage ragdoll physics */
 	virtual void Landed(const FHitResult& Hit) override;
+
+	/** Abilities **/
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> DashAbility;
 
 protected:
 
@@ -336,4 +349,11 @@ private:
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// set in editor: WBP_PauseMenu
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUserWidget> PauseMenuClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> PauseMenuWidget;
+	bool bIsPaused = false;
 };
