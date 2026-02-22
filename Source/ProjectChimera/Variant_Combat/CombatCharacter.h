@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
+#include "PlayerHUDWidget.h"
 #include "RPGAttributeSet.h"
 #include "CombatCharacter.generated.h"
 
@@ -346,14 +347,25 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 private:
+	
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
+	void HandleExpChanged(const FOnAttributeChangeData& Data);
+	void HandleLevelChanged(const FOnAttributeChangeData& Data);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// set in editor: WBP_PauseMenu
 	UPROPERTY(EditAnywhere, Category="UI")
 	TSubclassOf<UUserWidget> PauseMenuClass;
+	
 	UPROPERTY()
 	TObjectPtr<UUserWidget> PauseMenuWidget;
+
 	bool bIsPaused = false;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUserWidget> PlayerHUDClass;
+
+	UPROPERTY()
+	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 };
