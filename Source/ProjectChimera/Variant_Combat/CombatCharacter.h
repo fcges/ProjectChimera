@@ -112,6 +112,7 @@ protected:
 	float CachedAttackInputTime = 0.0f;
 
 	/** If true, the character is currently playing an attack animation */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsAttacking = false;
 
 	/** Distance ahead of the character that melee attack sphere collision traces will extend */
@@ -162,6 +163,7 @@ protected:
 	FName ChargeAttackSection;
 
 	/** Flag that determines if the player is currently holding the charged attack input */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsChargingAttack = false;
 	
 	/** If true, the charged attack hold check has been tested at least once */
