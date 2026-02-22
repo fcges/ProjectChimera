@@ -488,6 +488,7 @@ void ACombatCharacter::BeginPlay()
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxHealthAttribute()).AddUObject(this, &ACombatCharacter::HandleHealthChanged);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentExpAttribute()).AddUObject(this, &ACombatCharacter::HandleExpChanged);
 	}
 
 	// Give Dash Ability
@@ -496,6 +497,22 @@ void ACombatCharacter::BeginPlay()
 		AbilitySystemComponent->GiveAbility(
 			FGameplayAbilitySpec(DashAbility, 1, 0)
 		);
+	}
+
+	// Player HUD
+	if (PlayerHUDClass)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PlayerHUDWidget = CreateWidget<UPlayerHUDWidget>(PC, PlayerHUDClass);
+			if (PlayerHUDWidget)
+			{
+				PlayerHUDWidget->AddToViewport(0); // low Z-order, behind pause menu
+				PlayerHUDWidget->UpdateHealthBar(AttributeSet->GetCurrentHealth(), AttributeSet->GetMaxHealth());
+				PlayerHUDWidget->UpdateExp(AttributeSet->GetCurrentExp(), AttributeSet->GetMaxExp());
+				PlayerHUDWidget->UpdateLevel((int32)AttributeSet->GetCurrentLevel());
+			}
+		}
 	}
 
 	// Optional: pre-create it once
@@ -527,12 +544,32 @@ void ACombatCharacter::InitializeAttributes()
 
 void ACombatCharacter::HandleHealthChanged(const FOnAttributeChangeData& Data)
 {
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateHealthBar(Data.NewValue, AttributeSet->GetMaxHealth());
+	}
 	float NewHealth = Data.NewValue;
 	float OldHealth = Data.OldValue;
 
 	float DeltaValue = NewHealth - OldHealth;
 
 	OnHealthChanged(DeltaValue, FGameplayTagContainer());
+}
+
+void ACombatCharacter::HandleExpChanged(const FOnAttributeChangeData& Data)
+{
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateExp(Data.NewValue, AttributeSet->GetMaxExp());
+	}
+}
+
+void ACombatCharacter::HandleLevelChanged(const FOnAttributeChangeData& Data)
+{
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->UpdateLevel((int32)Data.NewValue);
+	}
 }
 
 void ACombatCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
