@@ -33,9 +33,9 @@ protected:
 	TArray<AActor*> EliteEnemySpawner;
 
 	int32 EnemyToSpawnCount = 0;
-
+	int32 EnemyAlive = 0;
 	int32 EliteEnemyToSpawnCount = 0;
-
+	int32 EliteAlive = 0;
 	//std::mutex Mtx;
 
 
@@ -45,11 +45,14 @@ public:
 
 	// Called when player level up.
 	void OnPlayerLevelUp(const FOnAttributeChangeData& Data);
+	void NewEnemyWave();
 
-	// Registers for enemy spawners to decrease enemy to spawn counters.
+	// Callbacks for enemy spawners to help track active enemy.
 	void OnEnemySpawned();
+	void OnEnemyKilled();
 	void OnEliteEnemySpawned();
+	void OnEliteEnemyKilled();
 
-	bool GetMoreEnemyToSpawn(const AActor* InEnemy);
+	// int GetMoreEnemyToSpawn(const AActor* InEnemy);
 
 };
