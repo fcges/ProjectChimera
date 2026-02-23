@@ -492,12 +492,18 @@ void ACombatCharacter::BeginPlay()
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetCurrentExpAttribute()).AddUObject(this, &ACombatCharacter::HandleExpChanged);
 	}
 
-	// Give Dash Ability
-	if (AbilitySystemComponent && DashAbility)
+	// Give Abilities
+	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->GiveAbility(
-			FGameplayAbilitySpec(DashAbility, 1, 0)
-		);
+		if (DashAbility) 
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DashAbility, 1, 0));
+		}
+
+		if (TimeStopAbility)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(TimeStopAbility, 1, 0));
+		}
 	}
 
 	// Apply Initial hp
@@ -633,6 +639,9 @@ void ACombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Charged Attack
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Started, this, &ACombatCharacter::ChargedAttackPressed);
 		EnhancedInputComponent->BindAction(ChargedAttackAction, ETriggerEvent::Completed, this, &ACombatCharacter::ChargedAttackReleased);
+
+		//TimeStop Ability
+		EnhancedInputComponent->BindAction(TimeStopAction, ETriggerEvent::Started, this, &ACombatCharacter::TimeStopPressed);
 		
 		// Pause Menu
 		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Started, this, &ACombatCharacter::TogglePauseMenu);
@@ -647,6 +656,14 @@ void ACombatCharacter::NotifyControllerChanged()
 	if (ACombatPlayerController* PC = Cast<ACombatPlayerController>(GetController()))
 	{
 		PC->SetRespawnTransform(GetActorTransform());
+	}
+}
+
+void ACombatCharacter::TimeStopPressed()
+{
+	if (AbilitySystemComponent && TimeStopAbility)
+	{
+		AbilitySystemComponent->TryActivateAbilityByClass(TimeStopAbility);
 	}
 }
 
