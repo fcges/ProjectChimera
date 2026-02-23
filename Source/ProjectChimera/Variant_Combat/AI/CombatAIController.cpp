@@ -51,15 +51,15 @@ void ACombatAIController::OnTargetPerceptionUpdated(AActor* InActor, FAIStimulus
 {
 	if (InActor && InActor->ActorHasTag("Player")) // Assuming player has a "Player" tag
 	{
-		UE_LOG(LogTemp, Display, TEXT("An Actor sensed."));
+		// UE_LOG(LogTemp, Display, TEXT("An Actor sensed."));
 		if (InStimulus.WasSuccessfullySensed())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Player Sighted!"));
+			// UE_LOG(LogTemp, Display, TEXT("Player Sighted!"));
 			// Logic: Set Blackboard key, start behavior tree, etc.
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Player Lost!"));
+			// UE_LOG(LogTemp, Display, TEXT("Player Lost!"));
 			// Logic: Lost sight
 		}
 	}
