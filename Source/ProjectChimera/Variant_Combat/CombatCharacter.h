@@ -81,6 +81,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* ChargedAttackAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* TimeStopAction;
+
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* PauseAction;
 
@@ -226,6 +229,8 @@ protected:
 	/** Called for combo attack input released */
 	void ChargedAttackReleased();
 
+	void TimeStopPressed();
+
 public:
 
 	/** Handles move inputs from either controls or UI interfaces */
@@ -319,6 +324,9 @@ public:
 	/** Abilities **/
 	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
 	TSubclassOf<UGameplayAbility> DashAbility;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> TimeStopAbility;
 
 protected:
 
