@@ -170,6 +170,14 @@ void ACombatEnemyManager::NewEnemyWave()
 			EnemyToSpawnCount -= EnemyRandomResult;
 			UE_LOG(LogTemp, Display, TEXT("Distributed %d enemy(enemies) to a CombatEnemySpawner, "
 								 "remaining EnemyToSpawnCount: %d"), EnemyRandomResult, EnemyToSpawnCount);
+			if (Spawner == EnemySpawner.Last() && EnemyToSpawnCount > 0)
+			{
+				int32 Remains = EnemyToSpawnCount;
+				CastedSpawner->ReceiveEnemyFromManager(Remains);
+				EnemyToSpawnCount = 0;
+				UE_LOG(LogTemp, Display, TEXT("Distributed additional %d enemy(enemies) to the last CombatEnemySpawner, "
+									 "remaining EnemyToSpawnCount: %d"), Remains, EnemyToSpawnCount);				
+			}
 		}
 	}
 	for (AActor* EliteSpawner: EliteEnemySpawner)
