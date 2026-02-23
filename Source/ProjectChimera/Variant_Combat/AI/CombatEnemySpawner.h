@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CombatEnemy.h"
 #include "CombatActivatable.h"
 #include "CombatEnemyManager.h"
 #include "CombatEnemySpawner.generated.h"
@@ -37,7 +38,7 @@ protected:
 
 	/** If true, the first enemy will be spawned as soon as the game starts */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy Spawner")
-	bool bShouldSpawnEnemiesImmediately = true;
+	bool bShouldSpawnEnemiesImmediately = false;
 
 	/** Time to wait before spawning the first enemy on game start */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy Spawner", meta = (ClampMin = 0, ClampMax = 10))
@@ -56,8 +57,8 @@ protected:
 	float ActivationDelay = 1.0f;
 
 	/** List of actors to activate after the last enemy dies */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Activation")
-	TArray<AActor*> ActorsToActivateWhenDepleted;
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Activation")
+	// TArray<AActor*> ActorsToActivateWhenDepleted;
 
 	/** Flag to ensure this is only activated once */
 	bool bHasBeenActivated = false;
@@ -92,7 +93,7 @@ protected:
 	void OnEnemyDied();
 
 	/** Called after the last spawned enemy has died */
-	void SpawnerDepleted();
+	// void SpawnerDepleted();
 
 public:
 
@@ -109,6 +110,15 @@ public:
 	/** Deactivates the Spawner */
 	UFUNCTION(BlueprintCallable, Category="Activatable")
 	virtual void DeactivateInteraction(AActor* ActivationInstigator) override;
+	
+	
+	// void GetEnemyToSpawn();
+	void ReceiveEnemyFromManager(int32 InCount);
 
 	// ~end IActivatable interface
+	
+private:
+	FName EnemyTag = "Enemy";
+	FName EliteEnemyTag = "EliteEnemy";
+	AActor* DefaultEnemy;
 };
