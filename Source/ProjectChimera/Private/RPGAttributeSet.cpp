@@ -64,7 +64,7 @@ void URPGAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, f
 		const float MaxExpValue = MaxExp.GetCurrentValue();
 		while (NewValue >= MaxExpValue) {
 			NewValue -= MaxExpValue;
-			CurrentLevel.SetCurrentValue(CurrentLevel.GetCurrentValue() + 1);
+			SetCurrentLevel(CurrentLevel.GetCurrentValue() + 1);
 			ApplyStatEffect();
 		}
 	}
@@ -85,7 +85,7 @@ void URPGAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMod
 		float NewExp = CurrentExp.GetCurrentValue();
 		while (NewExp >= MaxExpValue) {
 			NewExp -= MaxExpValue;
-			CurrentLevel.SetCurrentValue(CurrentLevel.GetCurrentValue() + 1);
+			SetCurrentLevel(CurrentLevel.GetCurrentValue() + 1);
 			ApplyStatEffect();
 		}
 		SetCurrentExp(NewExp);
